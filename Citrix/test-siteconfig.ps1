@@ -204,7 +204,7 @@ Function Test-HypervisorConnection {
         foreach ($Resource in $HypervisorResources ) {
             $Status = "Passed"
             $TestTarget = New-EnvTestDiscoveryTargetDefinition -AdminAddress $AdminAddress -TargetIdType "HostingUnit" -TestSuiteId "HostingUnit" -TargetId $Resource.HostingUnitUid
-            $TestResults = Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget
+            $TestResults = Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget -RunAsynchronously 
             foreach ( $Result in $TestResults.TestResults ) {
                 Write-Verbose "$($Resource.HostingUnitName) - $($Component.TestID) - $($Component.TestComponentStatus)"
                 foreach ( $Component in $Result.TestComponents ) {
