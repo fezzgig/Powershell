@@ -30,7 +30,7 @@ function Test-ControllerConfig {
         Write-Verbose "Initialize Test Variables"
         Write-Verbose "Testing $($DeliveryController.MachineName)"
         $TestTarget = New-EnvTestDiscoveryTargetDefinition -AdminAddress $AdminAddress -TargetIdType "Infrastructure" -TestSuiteId "Infrastructure" -TargetId $DeliveryController.Uuid
-        $TestResults = Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget
+        $TestResults = Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget -RunAsynchronously
         foreach ( $Result in $TestResults.TestResults ) {
             foreach ( $Component in $Result.TestComponents ) {
                 Write-Verbose "$($DeliveryController.MachineName) - $($Component.TestID) - $($Component.TestComponentStatus)"
@@ -80,7 +80,7 @@ Function Test-DeliveryGroup {
         Write-Verbose "Initialize Test Variables"
         Write-Verbose "Testing $($DeliveryGroup.Name)"
         $TestTarget = New-EnvTestDiscoveryTargetDefinition -AdminAddress $AdminAddress -TargetIdType "DesktopGroup" -TestSuiteId "DesktopGroup" -TargetId $DeliveryGroup.Uuid
-        $TestResults = Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget
+        $TestResults = Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget -RunAsynchronously
 
         foreach ( $Result in $TestResults.TestResults ) {
             foreach ( $Component in $Result.TestComponents ) {
@@ -132,7 +132,7 @@ function Test-Catalog {
         Write-Verbose "Initialize Test Variables"
         Write-Verbose "Testing $($Catalog.Name)"
         $TestTarget = New-EnvTestDiscoveryTargetDefinition -AdminAddress $AdminAddress -TargetIdType "Catalog" -TestSuiteId "Catalog" -TargetId $Catalog.Uuid
-        $TestResults =Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget
+        $TestResults =Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget -RunAsynchronously
         foreach ( $Result in $TestResults.TestResults ) {
             foreach ( $Component in $Result.TestComponents ) {
                 Write-Verbose "$Catalog.Name - $($Component.TestID) - $($Component.TestComponentStatus)"
@@ -149,40 +149,7 @@ function Test-Catalog {
     Write-Verbose "Writing Catalog Data to output file"
     "catalog,$CatalogUp,$CatalogDown" | Out-File $OutputFile
 }
-function Test-CatalogAsync {
-    Param (
-        [parameter(Mandatory = $true, ValueFromPipeline = $true)]$AdminAddress,
-        [parameter(Mandatory = $true, ValueFromPipeline = $true)]$ErrorFile,
-        [parameter(Mandatory = $true, ValueFromPipeline = $true)]$OutputFile
-    )
-    
-    $CatalogUp = 0 
-    $CatalogDown = 0
-    $XDCatalogs = Get-BrokerCatalog -AdminAddress $AdminAddress 
-    Write-Verbose "Variables and Arrays Initialized"
 
-    foreach ( $Catalog in $XDCatalogs ) {
-        $Status = "Passed"
-        Write-Verbose "Initialize Test Variables"
-        Write-Verbose "Testing $($Catalog.Name)"
-        $TestTarget = New-EnvTestDiscoveryTargetDefinition -AdminAddress $AdminAddress -TargetIdType "Catalog" -TestSuiteId "Catalog" -TargetId $Catalog.Uuid
-        $TestResults = Start-EnvTestTask -AdminAddress $AdminAddress -InputObject $TestTarget -RunAsynchronously
-        foreach ( $Result in $TestResults.TestResults ) {
-            foreach ( $Component in $Result.TestComponents ) {
-                Write-Verbose "$Catalog.Name - $($Component.TestID) - $($Component.TestComponentStatus)"
-                if ( ($Component.TestComponentStatus -ne "CompletePassed") -and ($Component.TestComponentStatus -ne "NotRun") ) {
-                    "$Catalog.Name - $($Component.TestID) - $($Component.TestComponentStatus)" | Out-file $ErrorFile -append
-                    $Status = "Component Failure"
-                }
-            }            
-        }
-        if ( $Status -eq "Passed" ) { $CatalogUp++ }
-        else { $CatalogDown++ }
-    }
-
-    Write-Verbose "Writing Catalog Data to output file"
-    "catalog,$CatalogUp,$CatalogDown" | Out-File $OutputFile
-}
 <#
 .SYNOPSIS
     Perform sanity checks against current hypervisor configuration for the given AdminAddress. 
@@ -269,9 +236,7 @@ Function Test-SiteConfig {
     Test-ControllerConfig -AdminAddress $AdminAddress -ErrorFile "dc-error.txt" -OutputFile "dc-output.txt"
     Test-DeliveryGroup -AdminAddress $AdminAddress -ErrorFile "dg-error.txt" -OutputFile "dg-output.txt"
     
-    Measure-Command { Test-CatalogAsync -AdminAddress $AdminAddress -ErrorFile "c-error.txt" -OutputFile "c-output.txt" }
-    
-    Measure-Command { Test-Catalog -AdminAddress $AdminAddress -ErrorFile "c-error.txt" -OutputFile "c-output.txt" } 
+	Test-Catalog -AdminAddress $AdminAddress -ErrorFile "c-error.txt" -OutputFile "c-output.txt"
     
     Test-HypervisorConnection -AdminAddress $AdminAddress -ErrorFile "h-error.txt" -OutputFile "h-output.txt"
     #   }
